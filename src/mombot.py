@@ -160,7 +160,6 @@ class MomBot():
         return blacklist
 
     def process_event(self, bot, update):
-        bot.sendMessage(chat_id=update.message.chat_id, text='Processing')
         username = None
         try:
             username = update.message.new_chat_member.username
@@ -179,7 +178,6 @@ class MomBot():
         event_map = self.get_event_map(update)
         print (event_map)
         self.cache_event_map(event_map)
-        bot.sendMessage(chat_id=update.message.chat_id, text='Processed')
 
     def get_event_map(self, update):
         event_map = {}

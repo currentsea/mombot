@@ -237,7 +237,7 @@ class MomBot():
         headers['Content-Type'] = 'x-www-form-urlencoded'
         req = requests.post('https://api.telegram.org/bot' + token + '/kickChatMember', headers=headers, params=params, verify=False)
         if req.status_code < 400:
-            bot.sendPhoto(chat_id=update.message.chat_id,
+            bot.sendPhoto(chat_id=params['chat_id'],
                           photo='http://i0.kym-cdn.com/photos/images/newsfeed/000/024/724/ban_hammer.jpg')
             target_text = 'Banhammer has perma-banned ' + params['username'] + ' no kittens were harmed in this process. Get away from our bitcoin you filthy scoundrels!'
         else:

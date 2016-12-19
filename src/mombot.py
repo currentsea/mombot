@@ -84,9 +84,17 @@ class MomBot():
                 params['target_ban_username'] = usertarg
                 params['administrator_username'] = event_map['from_user_username']
                 params['administrator_telegram_id'] = event_map['from_user_id']
+                params['username'] = usertarg
+                params['chat_id'] = update.message.chat_id
+
                 user_id = self.get_telegram_user_id(usertarg.replace(' ', '_'))
                 if user_id != None:
                     params['target_ban_telegram_id'] = user_id
+                    params['user_id'] = user_id
+                    self.kick(bot, params)
+                else:
+                    bot.sendMessage(chat_id=update.message.chat_id, text='The user ' + usertarg + " has been added to the ban list successfully but will not be kicked from the room as they are currently not a member of it ")
+
                 # try:
                 #     params['target_ban_telegram_id'] = update.
                 bot.sendMessage(chat_id=update.message.chat_id, text='Placeholder!')
@@ -266,7 +274,7 @@ class MomBot():
                           photo='http://i0.kym-cdn.com/photos/images/newsfeed/000/024/724/ban_hammer.jpg')
             target_text = 'Banhammer has perma-banned ' + params['username'] + ' no kittens were harmed in this process. Get away from our bitcoin you filthy scoundrels!'
         else:
-            target_text = 'Something went horribly wrong, contact @currentsea to fix this immediately!'
+            target_text = 'Something went horribly wrong, contact @currentsea to fix this immediately! ERROR CODE: ' + str(req.status_code)
         bot.sendMessage(chat_id=params['chat_id'], text=target_text)
     def helper(self, bot, update):
         bot.sendMessage(chat_id=update.message.chat_id, text="   MomBot v" + version +"   \n---COMMANDS----\n/start@bitcoin_mom_bot - initializes the bot\n/banhammer <telegram_handle> - banhamers the given handle\n/is_banned <telegram_handle> - lets you know whether the <telegram_handle> is on the ban list")

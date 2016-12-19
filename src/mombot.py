@@ -18,6 +18,7 @@ from credentials import banhammer_secret
 
 # Config vals
 from config import redis_host
+from config import api_hostname
 
 # Get Version From File
 from version import version
@@ -28,7 +29,6 @@ from telegram.ext import Updater
 from telegram.ext import CommandHandler
 from telegram.ext import MessageHandler
 
-api_hostname = 'https://bitcoin.mom'
 execute_ban_url = api_hostname + '/api/1.0/telegram/ban'
 banlist_url = api_hostname + '/api/1.0/telegram/ban_list'
 
@@ -39,28 +39,7 @@ def getRedis(host=redis_host, port=6379, db=0, fake=False):
         r = redis.StrictRedis(host=host, port=port, db=db)
     return r
 
-def cache_telegram_event(keygen):
-    try:
-        prefix = "tg"
-        try:
-            prefix = prefix + ":" + keygen.chat.type + ":" + keygen.chat.title
-        except:
-            prefix = prefix + ":misc:" +  generate_cache_key()
 
-        r = getRedis()
-        print('caching heavily')
-        for key in keygen:
-            if type(keygen[key]) is dict:
-                print (keygen[key])
-                if key == "new_chat_member":
-                    r.hmset(prefix + ":users:" + keygen[key]['username'], keygen[key])
-                    r.sadd(prefix + ":users_detail", keygen[key])
-                    r.sadd(prefix + ":user_handles", keygen[key]['username'])
-                    r.sadd(prefix + ":user_identifiers", keygen[key]['id'])
-                else:
-                    r.sadd(prefix + ":" + key, keygen[key])
-    except:
-        print ('CACHING EVENT FAILED')
 
 def generate_cache_key():
      the_time = str(time.time())
@@ -90,11 +69,7 @@ class MomBot():
         bot.sendMessage(chat_id=update.message.chat_id, text="MomBot has come online!")
 
     def banhammer(self, bot, update):
-        usertarg = update.message.text
-        splitter = usertarg.split(" ")
-        usertarg = splitter[1]
-        usertarg = usertarg.rstrip()
-        usertarg = usertarg.replace("@", "")
+        usertarg = self.get_usertarg(update)
         blacklist = self.get_blacklist()
         if usertarg in blacklist:
             bot.sendMessage(chat_id=update.message.chat_id,
@@ -109,7 +84,7 @@ class MomBot():
                 params['target_ban_username'] = usertarg
                 params['administrator_username'] = event_map['from_user_username']
                 params['administrator_telegram_id'] = event_map['from_user_id']
-                user_id = self.get_telegram_user_id(usertarg)
+                user_id = self.get_telegram_user_id(usertarg.replace(' ', '_'))
                 if user_id != None:
                     params['target_ban_telegram_id'] = user_id
                 # try:
@@ -125,18 +100,41 @@ class MomBot():
 
     def get_telegram_user_id(self, target):
         r = getRedis()
+        print ('target key = tg:users:' + target)
         idCall = r.get('tg:users:' + target)
         if idCall == None:
             return None
         else:
             return idCall.decode('utf-8')
 
-    def is_banned(self, bot, update):
+    def get_usertarg(self, update):
         usertarg = update.message.text
-        splitter = usertarg.split(" ")
-        usertarg = splitter[1]
-        usertarg = usertarg.rstrip()
+        usertarg = usertarg.replace("/banhammer ", "")
+        usertarg = usertarg.strip()
+        print (usertarg)
+
+        # if len(splitter) == 3:
+        #     usertarg = splitter[1] + splitter[2]
+        # elif len(splitter) == 2:
+        #     usertarg = splitter[1]
+        #  # splitter_smaller = splitter[1,len(splitter)]
+        # # usertarg = ''
+        # # count = 0
+        # # for thing in splitter_smaller:
+        # #     thing = thing.split()
+        # #     usertarg = usertarg + ' ' + thing.strip()
+        # #     # count = count + 1
+        # # usertarg = splitter.strip()
         usertarg = usertarg.replace("@", "")
+        return usertarg
+
+    def is_banned(self, bot, update):
+        usertarg = self.get_usertarg(update)
+
+        #
+        # usertarg = splitter[1]
+        # usertarg = usertarg.rstrip()
+        # usertarg = usertarg.replace("@", "")
         blacklist = self.get_blacklist()
         if usertarg not in blacklist:
             bot.sendMessage(chat_id=update.message.chat_id, text=str(usertarg + ' is not on the ban list. type /banhammer ' + usertarg + ' to banhammer them'))
@@ -159,12 +157,30 @@ class MomBot():
             blacklist.append(user['banned_user'])
         return blacklist
 
+    def get_username(self, update):
+        user_id = update.message.new_chat_member.id
+        username = update.message.new_chat_member.first_name
+        if update.message.new_chat_member.last_name != '' and update.message.new_chat_member.last_name != None:
+            username = username + " " + update.message.new_chat_member.last_name
+        else:
+            username = user_id
+        return username
+
     def process_event(self, bot, update):
+        print (update.message)
         username = None
+        event_map = self.get_event_map(update)
+
         try:
             username = update.message.new_chat_member.username
+            user_id = update.message.new_chat_member.id
+            event_map['target_user_id'] = user_id
+            if username == '':
+                username = self.get_username(update)
+            bot.sendMessage(chat_id=update.message.chat_id, text='The user ' + username + ' (USER ID: ' + user_id  + ') is not on the banlist. Welcome!')
         except:
             pass
+
         if username != None:
             blacklist = self.get_blacklist()
             if username in blacklist:
@@ -175,7 +191,8 @@ class MomBot():
                 self.kick(bot, params)
             else:
                 bot.sendMessage(chat_id=update.message.chat_id, text='The user ' + username + ' is not on the banlist. Welcome!')
-        event_map = self.get_event_map(update)
+        event_map['target_username'] = username
+
         print (event_map)
         self.cache_event_map(event_map)
 
@@ -196,12 +213,20 @@ class MomBot():
 
     def cache_event_map(self, event_map):
         print ('begin map caching')
-        try:
-            username =  event_map['new_chat_member_username']
-            user_id = event_map['new_chat_member_id']
-        except:
-            username = event_map['from_user_username']
-            user_id = event_map['from_user_id']
+
+        if "target_username" in event_map and "target_user_id" in event_map:
+            username = event_map['target_username'].replace(' ', '_')
+            user_id = event_map['target_user_id']
+
+        else:
+            try:
+                username =  event_map['new_chat_member_username']
+                user_id = event_map['new_chat_member_id']
+            except:
+                username = event_map['from_user_username']
+                user_id = event_map['from_user_id']
+
+
         updates_key = 'tg:' + event_map['chat_title'] + ":updates"
         event_key = updates_key + ":" + str(uuid.uuid4())[0:8]
         users_key = 'tg:' + event_map['chat_title'] + ":users"

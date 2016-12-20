@@ -94,14 +94,6 @@ class MomBot():
 
     def about_the_bot(self, bot, update):
         bot.sendMessage(chat_id=update.message.chat_id, text="MomBot - https://bitcoin.mom")
-        # first_msg = "This open source bot can be found at ."
-        # second_msg = "MomBot is a telegram bot designed to query against a global list of 'banned users' and automatically ban a malicious user when they enter a room that is protected by a MomBot."
-        # third_msg = "In short, MomBot protects your telegram channel's reputation being tarnished or from being taken advantage of by spammers, scammers, or trolls."
-        # fourth_msg = 'The banlist for this bot is maintained by https://bitcoin.mom - please contact @currentsea on telegram if you have any questions, comments or concerns. '
-        # bot.sendMessage(chat_id=update.message.chat_id, text=first_msg)
-        # bot.sendMessage(chat_id=update.message.chat_id, text=second_msg)
-        # bot.sendMessage(chat_id=update.message.chat_id, text=third_msg)
-        # bot.sendMessage(chat_id=update.message.chat_id, text=fourth_msg)
 
     def donate(self, bot, update):
         bot.sendPhoto(chat_id=update.message.chat_id,
@@ -112,8 +104,7 @@ class MomBot():
         usertarg = self.get_usertarg(update)
         blacklist = self.get_blacklist()
         if usertarg in blacklist:
-            bot.sendMessage(chat_id=update.message.chat_id,
-                            text='We have already banhammered ' + str(usertarg))
+            bot.sendMessage(chat_id=update.message.chat_id, text='We have already banhammered ' + str(usertarg))
         else:
             if usertarg.lower() == "currentsea" or usertarg.lower() == "mrjozza" or usertarg.lower() == "aztek_btc":
                 bot.sendMessage(chat_id=update.message.chat_id, text='Fuck off.')

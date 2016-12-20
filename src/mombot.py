@@ -19,6 +19,8 @@ from credentials import banhammer_secret
 # Config vals
 from config import redis_host
 from config import api_hostname
+from config import btc_donation_address
+from config import btc_donation_address_image_url
 
 # Get Version From File
 from version import version
@@ -52,21 +54,59 @@ class MomBot():
     def __init__(self):
         self.updater = Updater(token=token)
         self.dispatcher = self.updater.dispatcher
+        # # #
+
         self.help_handler = CommandHandler('help', self.helper)
+
+        self.about_handler = CommandHandler('about', self.about_the_bot)
+
+        self.donate_handler = CommandHandler('donate', self.donate)
+
         self.start_handler = CommandHandler('start', self.start)
+
         self.ban_hammer_handler = CommandHandler('banhammer', self.banhammer)
+
         self.is_user_banned_handler = CommandHandler('is_banned', self.is_banned)
+
         self.summarize_handler = MessageHandler([], self.process_event)
+
+        # # #
+
         self.dispatcher.add_handler(self.help_handler)
+
+        self.dispatcher.add_handler(self.about_handler)
+
+        self.dispatcher.add_handler(self.donate_handler)
+
         self.dispatcher.add_handler(self.start_handler)
+
         self.dispatcher.add_handler(self.ban_hammer_handler)
+
         self.dispatcher.add_handler(self.is_user_banned_handler)
+
         self.dispatcher.add_handler(self.summarize_handler)
+
         self.updater.start_polling()
         self.cache_connection = getRedis()
 
     def start(self, bot, update):
         bot.sendMessage(chat_id=update.message.chat_id, text="MomBot has come online!")
+
+    def about_the_bot(self, bot, update):
+        bot.sendMessage(chat_id=update.message.chat_id, text="MomBot - https://bitcoin.mom")
+        # first_msg = "This open source bot can be found at ."
+        # second_msg = "MomBot is a telegram bot designed to query against a global list of 'banned users' and automatically ban a malicious user when they enter a room that is protected by a MomBot."
+        # third_msg = "In short, MomBot protects your telegram channel's reputation being tarnished or from being taken advantage of by spammers, scammers, or trolls."
+        # fourth_msg = 'The banlist for this bot is maintained by https://bitcoin.mom - please contact @currentsea on telegram if you have any questions, comments or concerns. '
+        # bot.sendMessage(chat_id=update.message.chat_id, text=first_msg)
+        # bot.sendMessage(chat_id=update.message.chat_id, text=second_msg)
+        # bot.sendMessage(chat_id=update.message.chat_id, text=third_msg)
+        # bot.sendMessage(chat_id=update.message.chat_id, text=fourth_msg)
+
+    def donate(self, bot, update):
+        bot.sendPhoto(chat_id=update.message.chat_id,
+                      photo=btc_donation_address_image_url)
+        bot.sendMessage(chat_id=update.message.chat_id, text="Donations are very welcome!  Please send your BTC donations to " + btc_donation_address)
 
     def banhammer(self, bot, update):
         usertarg = self.get_usertarg(update)
@@ -165,6 +205,16 @@ class MomBot():
             blacklist.append(user['banned_user'])
         return blacklist
 
+    def get_blacklist_ids(self, blacklist_api_url=banlist_url):
+        headers = self.get_banhammer_headers()
+        req = requests.get(blacklist_api_url, headers=headers, verify=False)
+        blacklist_users = req.json()['ban_list']
+        blacklist = []
+        for user in blacklist_users:
+            if 'banned_user_telegram_id' in user:
+                blacklist.append(user['banned_user_telegram_id'])
+        return blacklist
+
     def get_username(self, update):
         user_id = update.message.new_chat_member.id
         username = update.message.new_chat_member.first_name
@@ -178,7 +228,6 @@ class MomBot():
         print (update.message)
         username = None
         event_map = self.get_event_map(update)
-
         try:
             username = update.message.new_chat_member.username
             user_id = update.message.new_chat_member.id
@@ -188,10 +237,16 @@ class MomBot():
             bot.sendMessage(chat_id=update.message.chat_id, text='The user ' + username + ' (USER ID: ' + user_id  + ') is not on the banlist. Welcome!')
         except:
             pass
-
         if username != None:
             blacklist = self.get_blacklist()
-            if username in blacklist:
+            id_blacklist = self.get_blacklist_ids()
+            if update.message.new_chat_member.id in id_blacklist:
+                params = {}
+                params['chat_id'] = update.message.chat_id
+                params['user_id'] = update.message.new_chat_member.id
+                params['username'] = update.message.new_chat_member.id
+                self.kick(bot, params)
+            elif username in blacklist:
                 params = {}
                 params['chat_id'] = update.message.chat_id
                 params['user_id'] = update.message.new_chat_member.id
@@ -277,7 +332,7 @@ class MomBot():
             target_text = 'Something went horribly wrong, contact @currentsea to fix this immediately! ERROR CODE: ' + str(req.status_code)
         bot.sendMessage(chat_id=params['chat_id'], text=target_text)
     def helper(self, bot, update):
-        bot.sendMessage(chat_id=update.message.chat_id, text="   MomBot v" + version +"   \n---COMMANDS----\n/start@bitcoin_mom_bot - initializes the bot\n/banhammer <telegram_handle> - banhamers the given handle\n/is_banned <telegram_handle> - lets you know whether the <telegram_handle> is on the ban list")
+        bot.sendMessage(chat_id=update.message.chat_id, text="   MomBot v" + version +"   \n---COMMANDS----\n/start@bitcoin_mom_bot - initializes MomBot\n/banhammer <telegram_handle> - banhamers the given handle\n/is_banned <telegram_handle> - shows if <telegram_handle> is on the ban list\n/about - about the bot\n/donate - " + btc_donation_address)
 
 if __name__ == "__main__":
     MomBot()

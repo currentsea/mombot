@@ -86,14 +86,20 @@ class MomBot():
 
         self.dispatcher.add_handler(self.summarize_handler)
 
-        self.updater.start_polling()
         self.cache_connection = getRedis()
 
+    def initialize(self):
+        self.updater.start_polling()
+
     def start(self, bot, update):
-        bot.sendMessage(chat_id=update.message.chat_id, text="MomBot has come online!")
+        msg = "MomBot has come online!"
+        bot.sendMessage(chat_id=update.message.chat_id, text=msg)
+        return msg
 
     def about_the_bot(self, bot, update):
-        bot.sendMessage(chat_id=update.message.chat_id, text="MomBot - https://bitcoin.mom")
+        msg = "MomBot - https://bitcoin.mom"
+        bot.sendMessage(chat_id=update.message.chat_id, text=msg)
+        return msg
 
     def donate(self, bot, update):
         bot.sendPhoto(chat_id=update.message.chat_id,

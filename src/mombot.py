@@ -33,6 +33,7 @@ from telegram.ext import MessageHandler
 
 execute_ban_url = api_hostname + '/api/1.0/telegram/ban'
 banlist_url = api_hostname + '/api/1.0/telegram/ban_list'
+global_admin_url = api_hostname + '/api/1.0/telegram/admin_list'
 
 def getRedis(host=redis_host, port=6379, db=0, fake=False):
     if fake == True:
@@ -108,7 +109,12 @@ class MomBot():
 
     def banhammer(self, bot, update):
         usertarg = self.get_usertarg(update)
-        blacklist = self.get_blacklist()
+        global_banlist = self.get_global_banlist()
+        blacklist = self.get_blacklist(global_banlist)
+        event_map = self.get_event_map(update)
+        admin_user_id = event_map['from_user_id']
+        admin_user_handle = event_map['from_user_username']
+
         if usertarg in blacklist:
             bot.sendMessage(chat_id=update.message.chat_id, text='We have already banhammered ' + str(usertarg))
         else:
@@ -180,6 +186,12 @@ class MomBot():
         blacklist_users = req.json()
         return blacklist_users
 
+    def get_global_admin_list(self, admin_api_url=global_admin_url):
+        headers = self.get_banhammer_headers()
+        req = requests.get(admin_api_url, headers=headers, verify=False)
+        admin_users = req.json()
+        return admin_users
+
     def get_blacklist(self, blacklist_users):
         blacklist = []
         for user in blacklist_users['ban_list']:
@@ -204,14 +216,28 @@ class MomBot():
             username = user_id
         return username
 
+    def get_message_map(self, message):
+        map = {}
+        for key in message.__dict__:
+            map[key] = message[key]
+        return map
+
     def process_event(self, bot, update):
-        print ('====================')
-        print (update.message)
-        print ('---')
-        print (update.message.chat)
-        print ('---')
-        print (update.message.from_user)
-        print ('====================')
+        chat_guid = str(uuid.uuid4())[0:16].replace('-', '')
+        # print ('unique chat guid: ' + str(chat_guid))
+        pipe = self.cache_connection.pipeline()
+        base_key = 'tg:events:' + chat_guid
+        message_key = base_key + ':msg'
+        chat_key = base_key + ":chat"
+        from_user_key = base_key + ":user"
+        print (message_key)
+        msg_map = self.get_message_map(update.message)
+        chat_map = self.get_message_map(update.message.chat)
+        from_user_map = self.get_message_map(update.message.from_user)
+        pipe.hmset(message_key, msg_map)
+        pipe.hmset(chat_key, chat_map)
+        pipe.hmset(from_user_key, from_user_map)
+        pipe.execute()
         username = None
         event_map = self.get_event_map(update)
         print (event_map)
@@ -231,7 +257,6 @@ class MomBot():
         except:
             pass
         global_list = self.get_global_banlist()
-        blacklist = self.get_blacklist(global_list)
         id_blacklist = self.get_blacklist_ids(global_list)
         print ('checking blacklist')
         print (id_blacklist)
@@ -241,33 +266,27 @@ class MomBot():
         if user_id != None and id_banned == True:
             params = {}
             print ('id is in blacklist')
-            params['chat_id'] =  event_map['chat_id']
-            params['user_id'] =  event_map['new_chat_member_id']
-            params['username'] = username
+            if 'new_chat_member_id' in event_map:
+                params['chat_id'] =  event_map['chat_id']
+                params['user_id'] =  event_map['new_chat_member_id']
+                params['username'] = username
+            else:
+                params['chat_id'] =  event_map['chat_id']
+                params['user_id'] =  event_map['from_user_id']
+                params['username'] = username
             self.kick(bot, params)
+        else:
+            blacklist = self.get_blacklist(global_list)
+            username_banned = event_map['from_user_username'] in blacklist
+            if username_banned == True:
+                params = {}
+                params['chat_id'] =  event_map['chat_id']
+                params['user_id'] =  event_map['from_user_id']
+                params['username'] = username
+                self.kick(bot, params)
+            else:
+                print ('User ' + str(event_map['target_user_id']) + ' is a valid user that has not been banned')
         event_map['target_username'] = username
-
-        # elif event_map['from_user_id'] in id_blacklist:
-        #     if event_map['from_user_id'] in id_blacklist:
-        #         params = {}
-        #         print ('id is in blacklist (from_user)')
-        #         params['chat_id'] = event_map['chat_id']
-        #         params['user_id'] = event_map['from_user_id']
-        #         params['username'] = username
-        #         self.kick(bot, params)
-
-
-
-        # elif event_map['username'] in blacklist:
-        #     params = {}
-        #     print ('username is in blacklist (new_chat_member)')
-        #     params['chat_id'] = update.message.chat_id
-        #     params['user_id'] = update.message.new_chat_member.id
-        #     params['username'] = username
-        #     self.kick(bot, params)
-        # else:
-        #     print ('username is in not on blacklist')
-        #     bot.sendMessage(chat_id=update.message.chat_id, text='The user ' + username + ' is not on the banlist. Welcome!')
         print ('raedy')
         print (event_map)
         self.cache_event_map(event_map)

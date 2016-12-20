@@ -43,5 +43,13 @@ class PrimesTestCase(unittest.TestCase):
         actual = self.mom.get_blacklist(self.banlist)
         self.assertTrue(expected, actual)
 
+    def test_get_admin_users(self):
+        actual = self.mom.get_global_admin_list()
+        self.assertTrue('telegram_administrators' in actual)
+        for item in actual['telegram_administrators']:
+            self.assertTrue('admin_username' in item)
+            self.assertTrue('admin_roles' in item)
+            self.assertTrue('admin_telegram_id' in item)
+
 if __name__ == '__main__':
     unittest.main()

@@ -108,46 +108,61 @@ class MomBot():
         bot.sendMessage(chat_id=update.message.chat_id, text="Donations are very welcome!  Please send your BTC donations to " + btc_donation_address)
 
     def banhammer(self, bot, update):
+        print ('checking permissions')
+
         usertarg = self.get_usertarg(update)
         global_banlist = self.get_global_banlist()
         blacklist = self.get_blacklist(global_banlist)
         event_map = self.get_event_map(update)
-        admin_user_id = event_map['from_user_id']
+        print ('got event map')
+        admin_user_id = str(event_map['from_user_id'])
         admin_user_handle = event_map['from_user_username']
+        global_admin_list = self.get_global_admin_list()
+        valid_admin = False
+        tg_admins = global_admin_list['telegram_administrators']
+        print ('checking permissions')
+        for cur_admin in tg_admins:
+            if admin_user_id == cur_admin['admin_telegram_id']:
+                valid_admin = True
+                break
+        if valid_admin == True:
+            bot.sendMessage(chat_id=update.message.chat_id, text='The administrator ' + str(admin_user_handle) + ' has requested a banhammer!')
 
-        if usertarg in blacklist:
-            bot.sendMessage(chat_id=update.message.chat_id, text='We have already banhammered ' + str(usertarg))
-        else:
-            if usertarg.lower() == "currentsea" or usertarg.lower() == "mrjozza" or usertarg.lower() == "aztek_btc":
-                bot.sendMessage(chat_id=update.message.chat_id, text='Fuck off.')
+            if usertarg in blacklist:
+                bot.sendMessage(chat_id=update.message.chat_id, text='We have already banhammered ' + str(usertarg))
             else:
-                headers = self.get_banhammer_headers()
-                event_map = self.get_event_map(update)
-                params = {}
-                params['target_ban_username'] = usertarg
-                params['administrator_username'] = event_map['from_user_username']
-                params['administrator_telegram_id'] = event_map['from_user_id']
-                params['username'] = usertarg
-                params['chat_id'] = update.message.chat_id
-
-                user_id = self.get_telegram_user_id(usertarg.replace(' ', '_'))
-                if user_id != None:
-                    params['target_ban_telegram_id'] = user_id
-                    params['user_id'] = user_id
-                    self.kick(bot, params)
+                if usertarg.lower() == "currentsea" or usertarg.lower() == "mrjozza" or usertarg.lower() == "aztek_btc":
+                    bot.sendMessage(chat_id=update.message.chat_id, text='Fuck off.')
                 else:
-                    bot.sendMessage(chat_id=update.message.chat_id, text='The user ' + usertarg + " has been added to the ban list successfully but will not be kicked from the room as they are currently not a member of it ")
+                    headers = self.get_banhammer_headers()
+                    event_map = self.get_event_map(update)
+                    params = {}
+                    params['target_ban_username'] = usertarg
+                    params['administrator_username'] = event_map['from_user_username']
+                    params['administrator_telegram_id'] = event_map['from_user_id']
+                    params['username'] = usertarg
+                    params['chat_id'] = update.message.chat_id
 
-                # try:
-                #     params['target_ban_telegram_id'] = update.
-                bot.sendMessage(chat_id=update.message.chat_id, text='Placeholder!')
-                req = requests.post(execute_ban_url, headers=headers, verify=False, data=json.dumps(params))
+                    user_id = self.get_telegram_user_id(usertarg.replace(' ', '_'))
+                    if user_id != None:
+                        params['target_ban_telegram_id'] = user_id
+                        params['user_id'] = user_id
+                        self.kick(bot, params)
+                    else:
+                        bot.sendMessage(chat_id=update.message.chat_id, text='The user ' + usertarg + " has been added to the ban list successfully but will not be kicked from the room as they are currently not a member of it ")
 
-                if req.status_code < 400:
-                    bot.sendPhoto(chat_id=update.message.chat_id, photo='http://i0.kym-cdn.com/photos/images/newsfeed/000/024/724/ban_hammer.jpg')
-                    bot.sendMessage(chat_id=update.message.chat_id, text='The user ' + usertarg + " has been added to the ban list successfully. ")
-                else:
-                    bot.sendMessage(chat_id=update.message.chat_id, text='Unable to successfully add ' + usertarg + ' to the ban list. HTTP Response: ' + str(req.status_code))
+                    # try:
+                    #     params['target_ban_telegram_id'] = update.
+                    # bot.sendMessage(chat_id=update.message.chat_id, text='Placeholder!')
+                    req = requests.post(execute_ban_url, headers=headers, verify=False, data=json.dumps(params))
+
+                    if req.status_code < 400:
+                        bot.sendPhoto(chat_id=update.message.chat_id, photo='http://i0.kym-cdn.com/photos/images/newsfeed/000/024/724/ban_hammer.jpg')
+                        bot.sendMessage(chat_id=update.message.chat_id, text='The user ' + usertarg + " has been added to the ban list successfully. ")
+                    else:
+                        bot.sendMessage(chat_id=update.message.chat_id, text='Unable to successfully add ' + usertarg + ' to the ban list. HTTP Response: ' + str(req.status_code))
+        else:
+            bot.sendMessage(chat_id=update.message.chat_id, text='You are not an administrator and therefore unable to ban anybody.  Please contact @currentsea if you believe this is in error.')
 
     def get_telegram_user_id(self, target):
         print ('target key = tg:users:' + target)

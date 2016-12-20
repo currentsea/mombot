@@ -11,6 +11,12 @@
       "banned_on": "2016-12-19 19:08:24.608693",
       "banned_user": "pocahontas",
       "banned_user_telegram_id": "23234234"
+    },
+    {
+      "banned_by": "aztek_btc",
+      "banned_on": "2016-12-19 19:08:24.608693",
+      "banned_user": "",
+      "banned_user_telegram_id": "23234234"
     }
   ]
 }

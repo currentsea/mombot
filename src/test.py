@@ -36,7 +36,10 @@ class PrimesTestCase(unittest.TestCase):
         return expected
 
     def test_get_blacklist_users(self):
-        expected = self.get_expected_blacklist('banned_user')
+        expected = []
+        for item in self.banlist['ban_list']:
+            if item['banned_user'] == "":
+                expected.append(item['banned_user_telegram_id'])
         actual = self.mom.get_blacklist(self.banlist)
         self.assertTrue(expected, actual)
 

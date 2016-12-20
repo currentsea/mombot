@@ -197,7 +197,9 @@ class MomBot():
     def get_blacklist(self, blacklist_users):
         blacklist = []
         for user in blacklist_users['ban_list']:
-            blacklist.append(user['banned_user'])
+            if user['banned_user'] == '':
+                blacklist.append(user['banned_user_telegram_id'])
+            blacklist.append(user)
         return blacklist
 
     def get_blacklist_ids(self, ban_list):

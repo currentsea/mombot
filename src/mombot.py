@@ -175,11 +175,6 @@ class MomBot():
 
     def is_banned(self, bot, update):
         usertarg = self.get_usertarg(update)
-
-        #
-        # usertarg = splitter[1]
-        # usertarg = usertarg.rstrip()
-        # usertarg = usertarg.replace("@", "")
         blacklist = self.get_blacklist()
         if usertarg not in blacklist:
             bot.sendMessage(chat_id=update.message.chat_id, text=str(usertarg + ' is not on the ban list. type /banhammer ' + usertarg + ' to banhammer them'))

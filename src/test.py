@@ -25,12 +25,20 @@ class PrimesTestCase(unittest.TestCase):
         self.assertTrue('ban_list' in self.banlist)
 
     def test_get_blacklist(self):
-        expected = []
-        for item in self.banlist['ban_list']:
-            expected.append(item['banned_user_telegram_id'])
+        expected = self.get_expected_blacklist('banned_user_telegram_id')
         ban_user_list = self.mom.get_blacklist_ids(self.banlist)
         self.assertEqual(expected, ban_user_list)
 
+    def get_expected_blacklist(self, target):
+        expected = []
+        for item in self.banlist['ban_list']:
+            expected.append(item[target])
+        return expected
+
+    def test_get_blacklist_users(self):
+        expected = self.get_expected_blacklist('banned_user')
+        actual = self.mom.get_blacklist(self.banlist)
+        self.assertTrue(expected, actual)
 
 if __name__ == '__main__':
     unittest.main()

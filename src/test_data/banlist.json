@@ -1,0 +1,16 @@
+{
+  "ban_list": [
+    {
+      "banned_by": "currentsea",
+      "banned_on": "2016-12-19 19:03:24.608693",
+      "banned_user": "btc_bot",
+      "banned_user_telegram_id": "96888181"
+    },
+    {
+      "banned_by": "aztek_btc",
+      "banned_on": "2016-12-19 19:08:24.608693",
+      "banned_user": "pocahontas",
+      "banned_user_telegram_id": "23234234"
+    }
+  ]
+}

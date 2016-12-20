@@ -193,21 +193,21 @@ class MomBot():
         headers['X-Ban-Hammer-Secret'] = banhammer_secret
         return headers
 
-    def get_blacklist(self, blacklist_api_url=banlist_url):
+    def get_global_banlist(self, blacklist_api_url=banlist_url):
         headers = self.get_banhammer_headers()
         req = requests.get(blacklist_api_url, headers=headers, verify=False)
-        blacklist_users = req.json()['ban_list']
+        blacklist_users = req.json()
+        return blacklist_users
+
+    def get_blacklist(self, blacklist_users):
         blacklist = []
-        for user in blacklist_users:
+        for user in blacklist_users['ban_list']:
             blacklist.append(user['banned_user'])
         return blacklist
 
-    def get_blacklist_ids(self, blacklist_api_url=banlist_url):
-        headers = self.get_banhammer_headers()
-        req = requests.get(blacklist_api_url, headers=headers, verify=False)
-        blacklist_users = req.json()['ban_list']
+    def get_blacklist_ids(self, ban_list):
         blacklist = []
-        for user in blacklist_users:
+        for user in ban_list['ban_list']:
             if 'banned_user_telegram_id' in user:
                 blacklist.append(user['banned_user_telegram_id'])
         return blacklist

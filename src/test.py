@@ -5,7 +5,7 @@ from mombot import MomBot
 class PrimesTestCase(unittest.TestCase):
     """Tests for `primes.py`."""
     def setUp(self):
-        self.mom = MomBot()
+        self.mom = MomBot(use_fake_redis=True)
         self.banlist = self.load_test_banlist()
 
     def load_test_banlist(self):

@@ -28,7 +28,7 @@ from telegram.ext import Updater
 from telegram.ext import CommandHandler
 from telegram.ext import MessageHandler
 
-api_hostname = 'https://bitcoin.mom'
+api_hostname = 'https://localhost:5000'
 execute_ban_url = api_hostname + '/api/1.0/telegram/ban'
 banlist_url = api_hostname + '/api/1.0/telegram/ban_list'
 
@@ -231,21 +231,16 @@ class MomBot():
         print ('Set ' + target_key + " successfully!")
 
     def kick(self, bot, params):
-        headers = {}
-        headers['X-Ban-Hammer-Key'] = banhammer_key
-        headers['X-Ban-Hammer-Secret'] = banhammer_secret
-        headers['Content-Type'] = 'x-www-form-urlencoded'
-        req = requests.post('https://api.telegram.org/bot' + token + '/kickChatMember', headers=headers, params=params, verify=False)
+        headers = self.get_banhammer_headers()
+        req = requests.post('https://api.telegram.org/' + token +'/kickChatMember', headers=headers, params=params, verify=False)
         if req.status_code < 400:
-            bot.sendPhoto(chat_id=params['chat_id'],
-                          photo='http://i0.kym-cdn.com/photos/images/newsfeed/000/024/724/ban_hammer.jpg')
-            target_text = 'Banhammer has perma-banned ' + params['username'] + ' no kittens were harmed in this process. Get away from our bitcoin you filthy scoundrels!'
+            bot.sendPhoto(chat_id=params["chat_id"], photo='http://i0.kym-cdn.com/photos/images/newsfeed/000/024/724/ban_hammer.jpg')
+            bot.sendMessage(chat_id=params["chat_id"], text='Banhammer has perma-banned ' + params['username'] + ' no kittens were harmed in this process. Get away from our bitcoin you filthy scoundrels!')
         else:
-            target_text = 'Something went horribly wrong, contact @currentsea to fix this immediately!'
-        bot.sendMessage(chat_id=params['chat_id'], text=target_text)
+            bot.sendMessage(chat_id=params['chat_id'], text='Something went horribly wrong, contact @currentsea to fix this immediately!')
+
     def helper(self, bot, update):
         bot.sendMessage(chat_id=update.message.chat_id, text="   MomBot v" + version +"   \n---COMMANDS----\n/start@bitcoin_mom_bot - initializes the bot\n/banhammer <telegram_handle> - banhamers the given handle\n/is_banned <telegram_handle> - lets you know whether the <telegram_handle> is on the ban list")
 
 if __name__ == "__main__":
     MomBot()
-
